@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispatch Testing - Advanced CRUD</title>
+    <style>
+        :root { --uts-blue: #004a99; --uts-green: #28a745; --uts-dark: #1a252f; --bg-gray: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg-gray); font-size: 13px; }
+        
+        header { background: #fff; border-bottom: 2px solid #ddd; display: flex; align-items: center; padding: 10px 20px; gap: 20px; position: sticky; top: 0; z-index: 1000; }
+        .logo { font-weight: bold; color: var(--uts-blue); border: 1px solid #ccc; padding: 5px; text-transform: uppercase; }
+        
+        nav { display: flex; gap: 5px; flex-grow: 1; }
+        .nav-item { position: relative; cursor: pointer; padding: 10px; color: #444; }
+        .nav-item.active { border-bottom: 3px solid var(--uts-blue); font-weight: bold; }
+
+        .dropdown-content { display: none; position: absolute; top: 100%; left: 0; background: white; min-width: 220px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 1px solid #ddd; max-height: 450px; overflow-y: auto; }
+        .nav-item:hover .dropdown-content { display: block; }
+        .dropdown-content a { color: #333; padding: 10px 16px; display: block; text-decoration: none; border-bottom: 1px solid #f9f9f9; }
+        .dropdown-content a:hover { background: #f1f1f1; color: var(--uts-blue); }
+
+        .controls { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: white; margin: 0 0 20px 0; border-bottom: 1px solid #ddd; }
+        .search-box { padding: 8px; width: 300px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-add { background: var(--uts-blue); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        main { padding: 0 20px; }
+        .table-container { background: white; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: var(--uts-dark); color: white; padding: 12px; text-align: left; text-transform: uppercase; font-size: 11px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
+        
+        .btn-edit { color: var(--uts-blue); cursor: pointer; border: none; background: none; font-weight: bold; }
+        .btn-delete { color: #d9534f; cursor: pointer; border: none; background: none; font-weight: bold; margin-left: 10px; }
+
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: white; margin: 50px auto; padding: 25px; width: 500px; border-radius: 8px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .full-width { grid-column: span 2; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 12px; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo" data-testid="app-title">Dispatch Testing</div>
+    <nav>
+        <div class="nav-item active" data-module="Dashboard">Dashboard</div>
+        <div class="nav-item" data-module="Trips">Trips</div>
+        <div class="nav-item" data-module="Driver Location">Driver Location</div>
+        <div class="nav-item" data-module="Customers">Customers</div>
+        <div class="nav-item" data-module="Orders">Orders</div>
+        
+        <div class="nav-item">Accounting ▾
+            <div class="dropdown-content">
+                <a href="#" data-module="Additional Charges">Additional Charges</a>
+                <a href="#" data-module="Invoices">Invoices</a>
+                <a href="#" data-module="Receive Payments">Receive Payments</a>
+                <a href="#" data-module="Driver Hourly Payout">Driver Hourly Payout</a>
+                <a href="#" data-module="User Hourly Payout">User Hourly Payout</a>
+                <a href="#" data-module="Driver Trip Payout">Driver Trip Payout</a>
+                <a href="#" data-module="Taxes">Taxes</a>
+                <a href="#" data-module="Payment Terms">Payment terms</a>
+            </div>
+        </div>
+
+        <div class="nav-item">Reports ▾
+            <div class="dropdown-content">
+                <a href="#" data-module="Chassis">Chassis</a>
+                <a href="#" data-module="Driver Time Log">Driver time log</a>
+                <a href="#" data-module="User Time Log">User time log</a>
+                <a href="#" data-module="Driver Timesheet">Driver timesheet</a>
+                <a href="#" data-module="Driver Trip Sheet">Driver Trip Sheet</a>
+                <a href="#" data-module="Login Activities">Login activities</a>
+                <a href="#" data-module="Fuel Data">Fuel Data</a>
+                <a href="#" data-module="User Activities">User Activities</a>
+                <a href="#" data-module="Order Damages">Order Damages</a>
+            </div>
+        </div>
+
+        <div class="nav-item">Setup ▾
+            <div class="dropdown-content">
+                <a href="#" data-module="Users">Users</a>
+                <a href="#" data-module="Roles & Permissions">Roles & Permissions</a>
+                <a href="#" data-module="Drivers">Drivers</a>
+                <a href="#" data-module="Trucks">Trucks</a>
+                <a href="#" data-module="Trailers">Trailers</a>
+                <a href="#" data-module="Chassis Setup">Chassis Setup</a>
+                <a href="#" data-module="Terminals">Terminals</a>
+                <a href="#" data-module="Vendors">Vendors</a>
+                <a href="#" data-module="Dispatch Locations">Dispatch Locations</a>
+                <a href="#" data-module="Customer Rates">Customer Rates</a>
+                <a href="#" data-module="Driver Payout Rates">Driver Payout Rates</a>
+                <a href="#" data-module="Service Types">Service Types</a>
+                <a href="#" data-module="Container Sizes">Container Sizes</a>
+                <a href="#" data-module="Commodities">Commodities</a>
+                <a href="#" data-module="Email Templates">Email Templates</a>
+                <a href="#" data-module="System Settings">System Settings</a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<div class="controls">
+    <h2 id="module-title">Dashboard</h2>
+    <div>
+        <input type="text" id="searchInput" class="search-box" placeholder="Search module..." onkeyup="handleSearch()">
+        <button class="btn-add" onclick="openModal()">+ Add New Entry</button>
+    </div>
+</div>
+
+<main>
+    <div class="table-container">
+        <table>
+            <thead><tr id="table-head"></tr></thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+</main>
+
+<div id="crudModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Form</h3>
+        <form id="moduleForm">
+            <div id="formFields" class="form-grid"></div>
+            <div style="margin-top:20px; text-align:right;">
+                <button type="button" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-add">Save Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 1. COMPREHENSIVE FIELD MAPPING FOR ALL MODULES
+    const moduleFields = {
+        'Dashboard': ['Container #', 'SSL', 'ETA Date', 'Status'],
+        'Trips': ['Trip ID', 'Driver', 'Origin', 'Destination'],
+        'Customers': ['Company Name', 'Contact Person', 'Credit Limit', 'City'],
+        'Orders': ['Order Ref', 'Container Size', 'Delivery Date', 'Customer'],
+        
+        // Accounting
+        'Additional Charges': ['Ref #', 'Charge Type', 'Amount', 'Approved By'],
+        'Invoices': ['Invoice #', 'Total Amount', 'Due Date', 'Payment Status'],
+        'Receive Payments': ['Check #', 'Amount Received', 'Invoice Ref', 'Bank'],
+        'Taxes': ['Tax ID', 'Tax Rate %', 'Region', 'Type'],
+        'Payment Terms': ['Term Name', 'Days Due', 'Discount %'],
+        
+        // Reports
+        'Chassis': ['Chassis #', 'Pool Name', 'License Plate', 'Last Inspection'],
+        'Fuel Data': ['Truck #', 'Gallons', 'Total Cost', 'Fuel Card #'],
+        'Order Damages': ['Order #', 'Damage Description', 'Claim Amount'],
+        
+        // Setup
+        'Users': ['Username', 'Full Name', 'Email', 'Permissions'],
+        'Drivers': ['Driver Code', 'CDL License', 'Phone', 'Onboarding Date'],
+        'Trucks': ['Truck Unit #', 'VIN', 'Make/Model', 'Year'],
+        'Trailers': ['Trailer #', 'Type', 'Axles', 'Status'],
+        'Terminals': ['Terminal Code', 'Address', 'Manager', 'Hours'],
+        'Vendors': ['Vendor Name', 'Service Provided', 'Account #', 'Email'],
+        'Container Sizes': ['Size Code', 'Length', 'Width', 'Max Weight'],
+        'System Settings': ['Setting Key', 'Value', 'Module', 'Last Updated']
+    };
+
+    let currentModule = 'Dashboard';
+    let editId = null;
+    const db = {}; // Mock Database
+
+    function renderTable(search = '') {
+        const fields = moduleFields[currentModule] || ['Field 1', 'Field 2', 'Field 3', 'Field 4'];
+        const data = (db[currentModule] || []).filter(item => 
+            Object.values(item).some(val => String(val).toLowerCase().includes(search.toLowerCase()))
+        );
+
+        // Render Head
+        document.getElementById('table-head').innerHTML = fields.map(f => `<th>${f}</th>`).join('') + `<th>Actions</th>`;
+        
+        // Render Body
+        document.getElementById('table-body').innerHTML = data.map(row => `
+            <tr>
+                ${fields.map(f => `<td>${row[f] || ''}</td>`).join('')}
+                <td>
+                    <button class="btn-edit" onclick="editRecord(${row.id})">Edit</button>
+                    <button class="btn-delete" onclick="deleteRecord(${row.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('') || `<tr><td colspan="${fields.length + 1}" style="text-align:center;">No records found for ${currentModule}</td></tr>`;
+    }
+
+    function openModal(id = null) {
+        editId = id;
+        const fields = moduleFields[currentModule] || ['Field 1', 'Field 2', 'Field 3', 'Field 4'];
+        const existing = id ? db[currentModule].find(r => r.id === id) : {};
+        
+        document.getElementById('modalTitle').innerText = id ? `Update ${currentModule}` : `Create ${currentModule}`;
+        document.getElementById('formFields').innerHTML = fields.map(f => `
+            <div class="form-group ${f.includes('Description') ? 'full-width' : ''}">
+                <label>${f}</label>
+                <input type="text" name="${f}" value="${existing[f] || ''}" required data-testid="field-${f.toLowerCase().replace(/\s/g, '-')}">
+            </div>
+        `).join('');
+        
+        document.getElementById('crudModal').style.display = 'block';
+    }
+
+    function closeModal() { document.getElementById('crudModal').style.display = 'none'; }
+
+    document.getElementById('moduleForm').onsubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const entry = { id: editId || Date.now() };
+        formData.forEach((val, key) => entry[key] = val);
+
+        if (!db[currentModule]) db[currentModule] = [];
+        if (editId) {
+            const idx = db[currentModule].findIndex(r => r.id === editId);
+            db[currentModule][idx] = entry;
+        } else {
+            db[currentModule].push(entry);
+        }
+        closeModal();
+        renderTable();
+    };
+
+    function deleteRecord(id) {
+        if(confirm('Are you sure you want to delete this?')) {
+            db[currentModule] = db[currentModule].filter(r => r.id !== id);
+            renderTable();
+        }
+    }
+
+    function editRecord(id) { openModal(id); }
+    function handleSearch() { renderTable(document.getElementById('searchInput').value); }
+
+    // Navigation Logic
+    document.querySelectorAll('[data-module]').forEach(btn => {
+        btn.onclick = (e) => {
+            e.preventDefault();
+            currentModule = btn.getAttribute('data-module');
+            document.getElementById('module-title').innerText = currentModule;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const parent = btn.closest('.nav-item');
+            if(parent) parent.classList.add('active');
+            renderTable();
+        };
+    });
+
+    // Initial Table Load
+    renderTable();
+</script>
+</body>
+</html>

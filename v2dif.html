@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTS Enterprise Dispatch v10</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --uts-blue: #004a99; --uts-dark: #121921; --border: #dcdde1; --bg: #f5f6fa; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); font-size: 13px; color: #2f3640; }
+        
+        /* Sidebar */
+        aside { width: 280px; background: var(--uts-dark); color: white; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; border-right: 1px solid #000; }
+        .sidebar-header { padding: 25px; font-weight: bold; font-size: 20px; text-align: center; border-bottom: 1px solid #2c3e50; color: #fff; }
+        .nav-label { padding: 15px 20px 5px; font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #dcdde1; transition: 0.2s; }
+        .nav-item:hover, .nav-item.active { background: var(--uts-blue); color: white; }
+        .sub-menu { background: #0a0f14; display: none; }
+        .sub-menu.open { display: block; }
+        .sub-item { padding: 10px 20px 10px 50px; font-size: 12px; cursor: pointer; color: #a2a2a2; border-bottom: 1px solid #1a1a1a; transition: 0.2s; }
+        .sub-item:hover { color: white; background: #1c2833; }
+
+        /* Main */
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { height: 60px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .content-area { padding: 25px; overflow-y: auto; flex-grow: 1; }
+        
+        .map-box { height: 250px; background: #e0e4e8; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #7f8c8d; }
+
+        /* Table */
+        .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .search-input { padding: 12px; width: 350px; border: 1px solid var(--border); border-radius: 6px; }
+        .btn-add { background: var(--uts-blue); color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        .table-wrap { background: white; border-radius: 8px; overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 1500px; }
+        th { background: #f8f9fb; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; color: #636e72; border-bottom: 2px solid #edf2f7; }
+        td { padding: 14px 15px; border-bottom: 1px solid #f1f2f6; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 900px; border-radius: 10px; padding: 35px; max-height: 90vh; overflow-y: auto; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-weight: 700; color: #2d3436; }
+        input, select, textarea { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+        .modal-footer { margin-top: 30px; text-align: right; border-top: 1px solid #eee; padding-top: 20px; }
+    </style>
+</head>
+<body>
+
+<aside>
+    <div class="sidebar-header">UTS DISPATCH</div>
+    
+    <div class="nav-label">Operations</div>
+    <div class="nav-item active" onclick="switchModule('Dashboard')"><i class="fa fa-home"></i> Dashboard</div>
+    <div class="nav-item" onclick="switchModule('Trips')"><i class="fa fa-route"></i> Trips</div>
+    <div class="nav-item" onclick="switchModule('Customers')"><i class="fa fa-users"></i> Customers</div>
+    <div class="nav-item" onclick="switchModule('Orders')"><i class="fa fa-file-invoice"></i> Orders</div>
+
+    <div class="nav-label">Finance</div>
+    <div class="nav-item" onclick="toggleSub('acc-menu')"><i class="fa fa-calculator"></i> Accounting <i class="fa fa-chevron-down" style="margin-left:auto"></i></div>
+    <div id="acc-menu" class="sub-menu">
+        <div class="sub-item" onclick="switchModule('Additional Charges')">Additional Charges</div>
+        <div class="sub-item" onclick="switchModule('Invoices')">Invoices</div>
+        <div class="sub-item" onclick="switchModule('Receive Payments')">Receive Payments</div>
+        <div class="sub-item" onclick="switchModule('Driver Hourly Payout')">Driver Hourly Payout</div>
+        <div class="sub-item" onclick="switchModule('User Hourly Payout')">User Hourly Payout</div>
+        <div class="sub-item" onclick="switchModule('Driver Trip Payout')">Driver Trip Payout</div>
+        <div class="sub-item" onclick="switchModule('Taxes')">Taxes</div>
+        <div class="sub-item" onclick="switchModule('Payment Terms')">Payment Terms</div>
+    </div>
+
+    <div class="nav-label">Management</div>
+    <div class="nav-item" onclick="toggleSub('set-menu')"><i class="fa fa-cog"></i> Setup <i class="fa fa-chevron-down" style="margin-left:auto"></i></div>
+    <div id="set-menu" class="sub-menu">
+        <div class="sub-item" onclick="switchModule('Users')">Users</div>
+        <div class="sub-item" onclick="switchModule('Drivers')">Drivers</div>
+        <div class="sub-item" onclick="switchModule('Trucks')">Trucks</div>
+        <div class="sub-item" onclick="switchModule('Trailers')">Trailers</div>
+        <div class="sub-item" onclick="switchModule('Chassis Setup')">Chassis Setup</div>
+        <div class="sub-item" onclick="switchModule('Terminals')">Terminals</div>
+        <div class="sub-item" onclick="switchModule('Dispatch Locations')">Dispatch Locations</div>
+        <div class="sub-item" onclick="switchModule('Customer Rates')">Customer Rates</div>
+        <div class="sub-item" onclick="switchModule('Driver Payout Rates')">Driver Payout Rates</div>
+        <div class="sub-item" onclick="switchModule('Container Sizes')">Container Sizes</div>
+        <div class="sub-item" onclick="switchModule('Commodities')">Commodities</div>
+        <div class="sub-item" onclick="switchModule('Fuel Data')">Fuel Data</div>
+        <div class="sub-item" onclick="switchModule('System Settings')">System Settings</div>
+    </div>
+</aside>
+
+<main>
+    <header>
+        <h2 id="module-title">Dashboard</h2>
+        <div>Admin Panel <i class="fa fa-user-shield"></i></div>
+    </header>
+
+    <div class="content-area">
+        <div id="map-section" class="map-box"><i class="fa fa-satellite"></i>&nbsp; LIVE DISPATCH TRACKING VIEW</div>
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search data..." onkeyup="handleSearch()">
+            <button id="addBtn" class="btn-add" onclick="openModal()">+ Add Record</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr id="table-head"></tr></thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<div id="crudModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Form</h3>
+        <hr><br>
+        <form id="moduleForm">
+            <div id="formFields" class="form-grid"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-add" style="background:#636e72" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-add">Save Entry</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // 1. DATA REPOSITORY
+    const db = {
+        'Customers': [{ id: 1, 'Company Name': 'Port Logistics NJ', 'Tax ID': '12-3456789', 'City': 'Newark' }],
+        'Drivers': [{ id: 1, 'Driver Name': 'Michael Smith', 'CDL License': 'CDL998877', 'Phone': '5551234567' }],
+        'Trucks': [{ id: 1, 'Truck #': 'T-101', 'VIN': 'VIN1234567890ABCDE', 'Make': 'Freightliner' }],
+        'Orders': []
+    };
+
+    // 2. COMPLETE UNIQUE CONFIGURATION FOR EVERY SINGLE MODULE
+    const config = {
+        'Dashboard': { fields: ['Order Ref', 'Customer', 'Driver', 'Container #', 'Status'], viewOnly: true },
+        
+        'Trips': [
+            {label: 'Trip #', type: 'text', required: true},
+            {label: 'Order Link', type: 'select', optionsFrom: 'Orders', key: 'Order Ref'},
+            {label: 'Assigned Driver', type: 'select', optionsFrom: 'Drivers', key: 'Driver Name'},
+            {label: 'Assigned Truck', type: 'select', optionsFrom: 'Trucks', key: 'Truck #'},
+            {label: 'Trip Status', type: 'select', options: ['Dispatched', 'At Port', 'Loaded', 'Outbound', 'Completed']},
+            {label: 'Current Latitude', type: 'text'},
+            {label: 'Current Longitude', type: 'text'},
+            {label: 'Empty Return Location', type: 'text'}
+        ],
+
+        'Orders': [
+            {label: 'Order Ref', type: 'text', required: true},
+            {label: 'Customer', type: 'select', optionsFrom: 'Customers', key: 'Company Name'},
+            {label: 'Container #', type: 'text', required: true},
+            {label: 'Pickup Terminal', type: 'text'},
+            {label: 'Delivery Address', type: 'text'},
+            {label: 'Booking Number', type: 'text'},
+            {label: 'Status', type: 'select', options: ['Arrival', 'Tomorrow Delivery', 'Pending Info', 'No ETA']}
+        ],
+
+        'Customers': [
+            {label: 'Company Name', type: 'text', required: true},
+            {label: 'Main Contact', type: 'text'},
+            {label: 'Tax ID', type: 'text'},
+            {label: 'Credit Limit', type: 'number'},
+            {label: 'Default Terms', type: 'select', options: ['Net 15', 'Net 30', 'COD']},
+            {label: 'Billing City', type: 'text'}
+        ],
+
+        'Additional Charges': [
+            {label: 'Category', type: 'select', options: ['Detention', 'Demurrage', 'Chassis Split', 'Pre-pull', 'Scale']},
+            {label: 'Amount', type: 'number', required: true},
+            {label: 'Currency', type: 'select', options: ['USD', 'CAD']},
+            {label: 'Auto-Bill', type: 'select', options: ['Yes', 'No']}
+        ],
+
+        'Invoices': [
+            {label: 'Invoice #', type: 'text', required: true},
+            {label: 'Order Link', type: 'select', optionsFrom: 'Orders', key: 'Order Ref'},
+            {label: 'Subtotal', type: 'number'},
+            {label: 'Tax Total', type: 'number'},
+            {label: 'Grand Total', type: 'number'},
+            {label: 'Due Date', type: 'date'}
+        ],
+
+        'Receive Payments': [
+            {label: 'Payment ID', type: 'text', required: true},
+            {label: 'Method', type: 'select', options: ['Check', 'ACH', 'Wire']},
+            {label: 'Check Number', type: 'text'},
+            {label: 'Amount', type: 'number'}
+        ],
+
+        'Driver Hourly Payout': [
+            {label: 'Driver Name', type: 'select', optionsFrom: 'Drivers', key: 'Driver Name'},
+            {label: 'Work Date', type: 'date'},
+            {label: 'Clock In', type: 'time'},
+            {label: 'Clock Out', type: 'time'},
+            {label: 'Hourly Rate', type: 'number'}
+        ],
+
+        'User Hourly Payout': [
+            {label: 'Staff Member', type: 'text'},
+            {label: 'Pay Period', type: 'text'},
+            {label: 'Total Hours', type: 'number'},
+            {label: 'Base Salary', type: 'number'}
+        ],
+
+        'Driver Trip Payout': [
+            {label: 'Driver Name', type: 'select', optionsFrom: 'Drivers', key: 'Driver Name'},
+            {label: 'Trip Link', type: 'text'},
+            {label: 'Flat Pay', type: 'number'},
+            {label: 'Fuel Incentive', type: 'number'}
+        ],
+
+        'Taxes': [
+            {label: 'Tax Authority', type: 'text'},
+            {label: 'Tax Type', type: 'select', options: ['Sales', 'State', 'Federal']},
+            {label: 'Percentage', type: 'number'}
+        ],
+
+        'Payment Terms': [
+            {label: 'Term Code', type: 'text'},
+            {label: 'Days Allowed', type: 'number'},
+            {label: 'Discount %', type: 'number'}
+        ],
+
+        'Users': [
+            {label: 'Username', type: 'text', required: true},
+            {label: 'Full Name', type: 'text'},
+            {label: 'System Access', type: 'select', options: ['Admin', 'Dispatcher', 'Bookkeeper']},
+            {label: 'Email Address', type: 'email'}
+        ],
+
+        'Drivers': [
+            {label: 'Driver Name', type: 'text', required: true},
+            {label: 'CDL License', type: 'text', required: true},
+            {label: 'Phone Number', type: 'tel'},
+            {label: 'Hazmat Endorsement', type: 'select', options: ['Yes', 'No']},
+            {label: 'Hire Date', type: 'date'}
+        ],
+
+        'Trucks': [
+            {label: 'Truck #', type: 'text', required: true},
+            {label: 'VIN', type: 'text', pattern: '[A-Z0-9]{17}', required: true},
+            {label: 'Plate Number', type: 'text'},
+            {label: 'Annual Inspection', type: 'date'},
+            {label: 'Fuel Type', type: 'select', options: ['Diesel', 'Electric', 'Gas']}
+        ],
+
+        'Trailers': [
+            {label: 'Trailer #', type: 'text'},
+            {label: 'Trailer Type', type: 'select', options: ['Dry Van', 'Flatbed', 'Reefer']},
+            {label: 'Length', type: 'number'}
+        ],
+
+        'Chassis Setup': [
+            {label: 'Chassis ID', type: 'text'},
+            {label: 'Axle Type', type: 'select', options: ['Tandem', 'Tri-Axle', 'Slider']},
+            {label: 'Owner Pool', type: 'text'}
+        ],
+
+        'Terminals': [
+            {label: 'Terminal Code', type: 'text'},
+            {label: 'Port Authority', type: 'text'},
+            {label: 'Gate Hours', type: 'text'}
+        ],
+
+        'Dispatch Locations': [
+            {label: 'Location Name', type: 'text'},
+            {label: 'Zone Code', type: 'text'},
+            {label: 'Radius KM', type: 'number'}
+        ],
+
+        'Customer Rates': [
+            {label: 'Customer', type: 'select', optionsFrom: 'Customers', key: 'Company Name'},
+            {label: 'Route ID', type: 'text'},
+            {label: 'Standard Rate', type: 'number'}
+        ],
+
+        'Driver Payout Rates': [
+            {label: 'Driver Category', type: 'select', options: ['Owner Op', 'Company Driver']},
+            {label: 'Mileage Rate', type: 'number'},
+            {label: 'Wait Time Pay', type: 'number'}
+        ],
+
+        'Container Sizes': [
+            {label: 'Size Category', type: 'select', options: ['20ft', '40ft', '45ft', '53ft']},
+            {label: 'Internal Volume', type: 'number'},
+            {label: 'Tare Weight', type: 'number'}
+        ],
+
+        'Commodities': [
+            {label: 'Commodity Description', type: 'text'},
+            {label: 'UN Code', type: 'text'},
+            {label: 'Hazmat Class', type: 'number'}
+        ],
+
+        'Fuel Data': [
+            {label: 'Truck #', type: 'select', optionsFrom: 'Trucks', key: 'Truck #'},
+            {label: 'Card Swipe ID', type: 'text'},
+            {label: 'Gallons Refueled', type: 'number'},
+            {label: 'Station Name', type: 'text'}
+        ],
+
+        'System Settings': [
+            {label: 'MC Number', type: 'text'},
+            {label: 'DOT Number', type: 'text'},
+            {label: 'API Key', type: 'text'}
+        ]
+    };
+
+    let currentModule = 'Dashboard';
+    let editId = null;
+
+    function renderTable(search = '') {
+        const fields = currentModule === 'Dashboard' ? config['Dashboard'].fields : 
+                      (config[currentModule] || []).map(f => f.label);
+        
+        document.getElementById('addBtn').style.display = (currentModule === 'Dashboard') ? 'none' : 'inline-block';
+        document.getElementById('map-section').style.display = (currentModule === 'Dashboard') ? 'flex' : 'none';
+        
+        let data = (currentModule === 'Dashboard') ? db['Orders'] : (db[currentModule] || []);
+        data = data.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(search.toLowerCase())));
+
+        document.getElementById('table-head').innerHTML = fields.map(f => `<th>${f}</th>`).join('') + (currentModule !== 'Dashboard' ? '<th>Actions</th>' : '');
+        document.getElementById('table-body').innerHTML = data.map(row => `
+            <tr>
+                ${fields.map(f => `<td>${row[f] || '-'}</td>`).join('')}
+                ${currentModule !== 'Dashboard' ? `<td><button onclick="editRecord(${row.id})">Edit</button></td>` : ''}
+            </tr>
+        `).join('') || '<tr><td colspan="30">No data found in this module.</td></tr>';
+    }
+
+    function openModal(id = null) {
+        editId = id;
+        const fields = config[currentModule] || [];
+        const existing = id ? db[currentModule].find(r => r.id === id) : {};
+        document.getElementById('modalTitle').innerText = id ? `Update ${currentModule}` : `Create ${currentModule}`;
+        
+        let html = '';
+        fields.forEach(f => {
+            html += `<div class="form-group"><label>${f.label}</label>`;
+            if (f.type === 'select') {
+                const opts = f.options || (db[f.optionsFrom] || []).map(i => i[f.key]);
+                html += `<select name="${f.label}" required><option value="">Select...</option>
+                         ${opts.map(o => `<option value="${o}" ${existing[f.label] === o ? 'selected' : ''}>${o}</option>`).join('')}
+                         </select>`;
+            } else {
+                html += `<input type="${f.type}" name="${f.label}" value="${existing[f.label] || ''}" ${f.required ? 'required' : ''} ${f.pattern ? `pattern="${f.pattern}"` : ''}>`;
+            }
+            html += `</div>`;
+        });
+        document.getElementById('formFields').innerHTML = html;
+        document.getElementById('crudModal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('crudModal').style.display = 'none'; }
+
+    document.getElementById('moduleForm').onsubmit = (e) => {
+        e.preventDefault();
+        const entry = { id: editId || Date.now() };
+        new FormData(e.target).forEach((v, k) => entry[k] = v);
+        if(!db[currentModule]) db[currentModule] = [];
+        if(editId) {
+            db[currentModule][db[currentModule].findIndex(r => r.id === editId)] = entry;
+        } else {
+            db[currentModule].push(entry);
+        }
+        closeModal();
+        renderTable();
+    };
+
+    function editRecord(id) { openModal(id); }
+    function toggleSub(id) { 
+        const el = document.getElementById(id);
+        const isOpen = el.style.display === 'block';
+        document.querySelectorAll('.sub-menu').forEach(m => m.style.display = 'none');
+        el.style.display = isOpen ? 'none' : 'block';
+    }
+    function handleSearch() { renderTable(document.getElementById('searchInput').value); }
+
+    function switchModule(mod) {
+        currentModule = mod;
+        document.getElementById('module-title').innerText = mod;
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        renderTable();
+    }
+
+    renderTable();
+</script>
+</body>
+</html>
